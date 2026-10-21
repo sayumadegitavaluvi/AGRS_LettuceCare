@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class DiseaseCreate(BaseModel):
@@ -7,6 +7,11 @@ class DiseaseCreate(BaseModel):
     cause: str
     treatment: str
 
+class DiseaseUpdate(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    cause: str | None = None
+    treatment: str | None = None
 
 class DiseaseResponse(BaseModel):
     id: int
@@ -15,5 +20,4 @@ class DiseaseResponse(BaseModel):
     cause: str
     treatment: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
