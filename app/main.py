@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.config.database import Base, engine
 from app.models import user
@@ -20,6 +23,19 @@ app = FastAPI(
     title="LettuceCare API",
     version="1.0.0",
     description="LettuceCare Backend"
+)
+
+
+# Folder penyimpanan foto hasil deteksi.
+# Lokasinya berada di root project AGRS_LettuceCare/uploads.
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Izinkan foto diakses melalui URL backend.
+app.mount(
+    "/uploads",
+    StaticFiles(directory=str(UPLOAD_DIR)),
+    name="uploads"
 )
 
 

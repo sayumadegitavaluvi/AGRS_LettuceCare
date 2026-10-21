@@ -1,5 +1,6 @@
 from pathlib import Path
 import shutil
+from uuid import uuid4
 
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -17,8 +18,9 @@ router = APIRouter(
 )
 
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Folder uploads berada di root project backend
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_db():
@@ -44,8 +46,10 @@ def predict(
             detail="File harus berupa gambar"
         )
 
-    # Simpan gambar
-    file_path = UPLOAD_DIR / file.filename
+    # Simpan gambar menggunakan nama unik
+    extension = Path(file.filename or "").suffix.lower() or ".jpg"
+    filename = f"{uuid4().hex}{extension}"
+    file_path = UPLOAD_DIR / filename
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -71,17 +75,22 @@ def predict(
         )
 
     user = db.query(User).filter(
-    User.email == current_user).first()
+        User.email == current_user
+    ).first()
 
     if user is None:
-        raise HTTPException(status_code=404,detail="User tidak ditemukan")
+        raise HTTPException(
+            status_code=404,
+            detail="User tidak ditemukan"
+        )
 
     history = DetectionHistory(
         user_id=user.id,
         disease_id=knowledge_base["id"],
-        image_path=str(file_path),
+        image_path=f"/uploads/{filename}",
         diagnosis=knowledge_base["name"],
-        confidence=round(result["confidence"] * 100, 2))
+        confidence=round(result["confidence"] * 100, 2)
+    )
 
     db.add(history)
     db.commit()

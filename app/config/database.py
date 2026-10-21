@@ -1,28 +1,28 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.engine import URL
 
-
-DATABASE_URL = "postgresql://postgres:iet123@localhost:5432/lettucecare"
-
-
-engine = create_engine(
-    DATABASE_URL
+DATABASE_URL = URL.create(
+    drivername="postgresql+psycopg2",
+    username="postgres",
+    password="admin123",
+    host="localhost",
+    port=5432,
+    database="lettucecare",
 )
 
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engine
+    bind=engine,
 )
-
 
 Base = declarative_base()
 
 try:
-    connection = engine.connect()
-    print("Database berhasil terhubung")
-    connection.close()
-
+    with engine.connect() as connection:
+        print("Database berhasil terhubung")
 except Exception as e:
-    print("Database gagal:", e)
+    print("Database gagal terhubung:", repr(e))
