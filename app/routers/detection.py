@@ -2,7 +2,7 @@ from pathlib import Path
 import shutil
 from uuid import uuid4
 
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.config.database import SessionLocal
@@ -10,6 +10,7 @@ from app.services.detection import predict_image
 from app.models.detection_history import DetectionHistory
 from app.models.user import User
 from app.utils.security import get_current_user
+from enum import Enum
 
 
 router = APIRouter(
@@ -22,6 +23,20 @@ router = APIRouter(
 UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+class PlantAge(str, Enum):
+    AGE_8_14 = "8–14 hari"
+    AGE_15_30 = "15–30 hari"
+    AGE_ABOVE_30 = "> 30 hari"
+
+
+class PlantCondition(str, Enum):
+    HEALTHY = "Daun sehat"
+    SPOTS = "Bercak cokelat atau kehitaman pada daun"
+    WHITE_LAYER = "Lapisan putih seperti tepung"
+    WILTING = "Daun layu atau menguning"
+    ROTTEN = "Daun busuk atau rusak"
+    HOLES = "Lubang pada daun"
+    OTHER = "Gejala lainnya"
 
 def get_db():
     db = SessionLocal()
@@ -35,6 +50,8 @@ def get_db():
 @router.post("/predict")
 def predict(
     file: UploadFile = File(...),
+    plant_age: PlantAge | None = Form(None),
+    plant_condition: PlantCondition | None = Form(None),
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user)
 ):
@@ -88,6 +105,8 @@ def predict(
         user_id=user.id,
         disease_id=knowledge_base["id"],
         image_path=f"/uploads/{filename}",
+        plant_age=plant_age.value if plant_age else None,
+        plant_condition=plant_condition.value if plant_condition else None,
         diagnosis=knowledge_base["name"],
         confidence=round(result["confidence"] * 100, 2)
     )

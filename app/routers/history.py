@@ -57,6 +57,8 @@ def get_history(
         result.append({
             "id": history.id,
             "image_path": history.image_path,
+            "plant_age": history.plant_age,
+            "plant_condition": history.plant_condition,
             "diagnosis": history.diagnosis,
             "confidence": history.confidence,
             "created_at": history.created_at,
@@ -111,6 +113,8 @@ def get_history_detail(
     return {
         "id": history.id,
         "image_path": history.image_path,
+        "plant_age": history.plant_age,
+        "plant_condition": history.plant_condition,
         "diagnosis": history.diagnosis,
         "confidence": history.confidence,
         "created_at": history.created_at,
@@ -159,5 +163,3 @@ def delete_history(
     return {
         "message": "Riwayat deteksi berhasil dihapus"
     }
-
-    return history

@@ -15,7 +15,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const response = await fetch("http://192.168.1.13:8000/");
+        const response = await fetch("http://192.168.18.174:8000/");
 
         if (!response.ok) {
           console.log(

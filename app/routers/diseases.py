@@ -117,58 +117,6 @@ def delete_disease(
     disease_id: int,
     db: Session = Depends(get_db)
 ):
-
-    # Cari penyakit berdasarkan ID
-    disease = db.query(Disease).filter(
-        Disease.id == disease_id
-    ).first()
-
-    if not disease:
-        raise HTTPException(
-            status_code=404,
-            detail="Data penyakit tidak ditemukan"
-        )
-
-    # Cek apakah penyakit digunakan dalam history
-    from app.models.detection_history import DetectionHistory
-
-    existing_history = db.query(DetectionHistory).filter(
-        DetectionHistory.disease_id == disease_id
-    ).first()
-
-    if existing_history:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "Penyakit tidak dapat dihapus karena "
-                "sudah digunakan dalam riwayat deteksi"
-            )
-        )
-
-    # Hapus data penyakit
-    db.delete(disease)
-    db.commit()
-
-    return {
-        "message": "Data penyakit berhasil dihapus",
-        "deleted_disease_id": disease_id
-    }
-
-
-# =========================
-# Hapus Knowledge Base
-# =========================
-
-@router.delete(
-    "/{disease_id}",
-    dependencies=[
-        Depends(verify_knowledge_base_key)
-    ]
-)
-def delete_disease(
-    disease_id: int,
-    db: Session = Depends(get_db)
-):
     from app.models.detection_history import DetectionHistory
 
     # Cari data penyakit

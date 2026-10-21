@@ -30,6 +30,16 @@ class DetectionHistory(Base):
         nullable=False
     )
 
+    plant_age = Column(
+        String(20),
+        nullable=True
+    )
+
+    plant_condition = Column(
+        String(100),
+        nullable=True
+    )
+
     diagnosis = Column(
         String(100),
         nullable=False

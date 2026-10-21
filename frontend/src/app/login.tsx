@@ -12,7 +12,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.1.13:8000";
+const API_URL = "http://192.168.18.174:8000";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
