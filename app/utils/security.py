@@ -4,16 +4,14 @@ from passlib.context import CryptContext
 from jose import jwt, JWTError
 
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 
 # =========================
-# OAuth2 Bearer Token
+# Bearer Token
 # =========================
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/auth/login"
-)
+security = HTTPBearer()
 
 
 # =========================
@@ -79,8 +77,10 @@ def create_access_token(data: dict):
 # =========================
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme)
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
+
+    token = credentials.credentials
 
     try:
 
@@ -92,16 +92,13 @@ def get_current_user(
 
         email = payload.get("sub")
 
-
         if email is None:
             raise HTTPException(
                 status_code=401,
                 detail="Token tidak valid"
             )
 
-
         return email
-
 
     except JWTError:
 

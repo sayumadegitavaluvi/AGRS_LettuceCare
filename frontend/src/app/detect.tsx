@@ -32,7 +32,7 @@ const CONDITION_OPTIONS = [
 ];
 
 // Alamat backend FastAPI pada laptop.
-const API_BASE_URL = "http://192.168.18.174:8000";
+const API_BASE_URL = "http://192.168.1.3:8000";
 
 // Kunci penyimpanan foto yang dibaca oleh result.tsx.
 const IMAGE_STORAGE_KEY = "last_detection_image";

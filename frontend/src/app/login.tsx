@@ -12,7 +12,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.18.174:8000";
+const API_URL = "http://192.168.1.3:8000";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -20,31 +20,47 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    // Validasi input
     if (!email.trim() || !password) {
-      Alert.alert("Login", "Email dan password wajib diisi.");
+      Alert.alert(
+        "Login",
+        "Email dan password wajib diisi."
+      );
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body:
-          `username=${encodeURIComponent(email.trim())}` +
-          `&password=${encodeURIComponent(password)}`,
-      });
+      // Kirim email dan password ke backend
+      const response = await fetch(
+        `${API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password: password,
+          }),
+        }
+      );
 
       const data = await response.json();
 
+      // Menangani error dari backend
       if (!response.ok) {
         const detail = data.detail;
+
         const message = Array.isArray(detail)
-          ? detail.map((item: { msg?: string }) => item.msg).join("\n")
+          ? detail
+              .map(
+                (item: { msg?: string }) =>
+                  item.msg
+              )
+              .join("\n")
           : typeof detail === "string"
             ? detail
             : "Periksa email dan password kamu.";
@@ -52,14 +68,28 @@ export default function LoginScreen() {
         throw new Error(message);
       }
 
+      // Pastikan token tersedia
       if (!data.access_token) {
-        throw new Error("Token login tidak ditemukan dari backend.");
+        throw new Error(
+          "Token login tidak ditemukan dari backend."
+        );
       }
 
-      await AsyncStorage.setItem("access_token", data.access_token);
-      await AsyncStorage.setItem("user_email", email.trim());
+      // Simpan token untuk akses endpoint protected
+      await AsyncStorage.setItem(
+        "access_token",
+        data.access_token
+      );
 
+      // Simpan email user
+      await AsyncStorage.setItem(
+        "user_email",
+        email.trim()
+      );
+
+      // Masuk ke halaman Home
       router.replace("/home");
+
     } catch (error) {
       const message =
         error instanceof Error
@@ -68,10 +98,13 @@ export default function LoginScreen() {
 
       Alert.alert(
         "Login Gagal",
-        message.includes("Network request failed")
+        message.includes(
+          "Network request failed"
+        )
           ? "Tidak dapat terhubung ke server. Pastikan laptop dan HP berada di jaringan yang sama dan backend masih berjalan."
           : message
       );
+
     } finally {
       setLoading(false);
     }
@@ -79,29 +112,43 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+
+      {/* Background */}
       <Image
-        source={require("../../assets/images/lettuce-bg.jpeg")}
+        source={require(
+          "../../assets/images/lettuce-bg.jpeg"
+        )}
         style={styles.background}
       />
 
       <View style={styles.overlay} />
 
       <View style={styles.content}>
+
+        {/* Logo */}
         <View style={styles.logoWrapper}>
           <Image
-            source={require("../../assets/images/lettuce-logo.png")}
+            source={require(
+              "../../assets/images/lettuce-logo.png"
+            )}
             style={styles.logo}
           />
         </View>
 
-        <Text style={styles.title}>Selamat Datang</Text>
+        {/* Title */}
+        <Text style={styles.title}>
+          Selamat Datang
+        </Text>
 
         <Text style={styles.subtitle}>
           Masuk untuk memantau kesehatan{"\n"}
           tanaman selada kamu
         </Text>
 
+        {/* Login Card */}
         <View style={styles.card}>
+
+          {/* Email */}
           <TextInput
             placeholder="Email"
             placeholderTextColor="#7A8F7D"
@@ -114,6 +161,7 @@ export default function LoginScreen() {
             editable={!loading}
           />
 
+          {/* Password */}
           <TextInput
             placeholder="Password"
             placeholderTextColor="#7A8F7D"
@@ -127,24 +175,34 @@ export default function LoginScreen() {
             returnKeyType="done"
           />
 
+          {/* Login Button */}
           <Pressable
-            style={styles.loginButton}
+            style={[
+              styles.loginButton,
+              loading && styles.loginButtonDisabled,
+            ]}
             onPress={handleLogin}
             disabled={loading}
           >
             <Text style={styles.loginText}>
-              {loading ? "Memproses..." : "Login"}
+              {loading
+                ? "Memproses..."
+                : "Login"}
             </Text>
           </Pressable>
 
+          {/* Register */}
           <Pressable
-            onPress={() => router.push("/register")}
+            onPress={() =>
+              router.push("/register")
+            }
             disabled={loading}
           >
             <Text style={styles.registerText}>
               Belum punya akun? Buat Akun Baru
             </Text>
           </Pressable>
+
         </View>
       </View>
     </View>
@@ -167,7 +225,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: "100%",
-    backgroundColor: "rgba(255,255,255,0.45)",
+    backgroundColor:
+      "rgba(255,255,255,0.45)",
   },
 
   content: {
@@ -216,7 +275,8 @@ const styles = StyleSheet.create({
 
   card: {
     width: 380,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor:
+      "rgba(255,255,255,0.95)",
     borderRadius: 30,
     padding: 28,
     shadowColor: "#000",
@@ -247,6 +307,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     marginTop: 8,
+  },
+
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
 
   loginText: {
