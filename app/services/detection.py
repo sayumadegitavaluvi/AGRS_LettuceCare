@@ -16,7 +16,7 @@ model = YOLO(str(MODEL_PATH))
 # ke nama yang ada di Knowledge Base
 CLASS_MAPPING = {
     "Bacterial": "Bacterial",
-    "Powderly_mildew_on_lettuce": "Powdery Mildew",
+    "Powdery_mildew_on_lettuce": "Powdery Mildew",
     "Wilt_and_leaf_blight_on_lettuce": "Fusarium Wilt",
     "fungal": "Fungal",
     "healthy": "Healthy"

@@ -133,6 +133,17 @@ export default function ResultScreen() {
   );
 
   const isHealthy = diagnosis.toLowerCase() === "healthy";
+  const hasDetectionResult = Boolean(
+    prediction.class_name || prediction.diagnosis || prediction.knowledge_base?.name
+  );
+  const [showCompleteNotice, setShowCompleteNotice] = useState(true);
+
+  // Notifikasi berhasil muncul sebentar setelah hasil API dibuka.
+  useEffect(() => {
+    if (!hasDetectionResult) return;
+    const timer = setTimeout(() => setShowCompleteNotice(false), 3000);
+    return () => clearTimeout(timer);
+  }, [hasDetectionResult]);
 
   return (
     <View style={styles.screen}>
@@ -466,11 +477,48 @@ export default function ResultScreen() {
           LETTUCECARE · RAWAT DENGAN LEBIH CERDAS
         </Text>
       </ScrollView>
+
+      {hasDetectionResult && showCompleteNotice && (
+        <View
+          pointerEvents="none"
+          accessibilityLiveRegion="polite"
+          style={styles.completeToast}
+        >
+          <Text style={styles.completeToastText}>
+            Pemeriksaan berhasil. Hasil deteksi sudah tersedia.
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  completeToast: {
+    position: "absolute",
+    top: 82,
+    left: 22,
+    right: 22,
+    zIndex: 30,
+    elevation: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#B7DBBF",
+    backgroundColor: "#E9F7EA",
+    paddingVertical: 13,
+    paddingHorizontal: 17,
+    shadowColor: "#244F37",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  completeToastText: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700",
+    color: "#205C39",
+    textAlign: "center",
+  },
   screen: {
     flex: 1,
     backgroundColor: "#F5F8F1",

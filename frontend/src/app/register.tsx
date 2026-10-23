@@ -11,22 +11,25 @@ import {
 } from "react-native";
 
 import { router } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 
-const API_URL = "http://192.168.1.3:8000";
+const API_URL = "http://172.20.10.4:8000";
 
 export default function RegisterScreen() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Ketentuan password
   const checks = [
     {
-      label: "Minimal 12 karakter",
-      valid: password.length >= 12,
+      label: "Minimal 8 karakter",
+      valid: password.length >= 8,
     },
     {
       label: "Mengandung huruf besar (A-Z)",
@@ -142,7 +145,7 @@ export default function RegisterScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <Image
-        source={require("../../assets/images/lettuce-bg.jpeg")}
+        source={require("../../assets/images/lettuce-login-bg.png")}
         style={styles.background}
       />
 
@@ -187,17 +190,36 @@ export default function RegisterScreen() {
             editable={!loading}
           />
 
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#7A8F7D"
-            secureTextEntry
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
+          {/* Password dengan ikon mata */}
+          <View style={[styles.input, styles.passwordContainer]}>
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#7A8F7D"
+              secureTextEntry={!showPassword}
+              style={styles.passwordInput}
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
+            />
+            <Pressable
+              onPress={() => setShowPassword((prev) => !prev)}
+              disabled={loading}
+              style={styles.eyeButton}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+            >
+              <SymbolView
+                name={showPassword
+                  ? { ios: "eye.slash", android: "visibility_off", web: "visibility_off" }
+                  : { ios: "eye", android: "visibility", web: "visibility" }}
+                size={22}
+                tintColor="#355A42"
+              />
+            </Pressable>
+          </View>
 
           {/* Ketentuan muncul saat pengguna mulai mengetik */}
           {password.length > 0 && (
@@ -247,17 +269,36 @@ export default function RegisterScreen() {
             </View>
           )}
 
-          <TextInput
-            placeholder="Konfirmasi Password"
-            placeholderTextColor="#7A8F7D"
-            secureTextEntry
-            style={styles.input}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
+          {/* Konfirmasi password dengan ikon mata tersendiri */}
+          <View style={[styles.input, styles.passwordContainer]}>
+            <TextInput
+              placeholder="Konfirmasi Password"
+              placeholderTextColor="#7A8F7D"
+              secureTextEntry={!showConfirmPassword}
+              style={styles.passwordInput}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
+            />
+            <Pressable
+              onPress={() => setShowConfirmPassword((prev) => !prev)}
+              disabled={loading}
+              style={styles.eyeButton}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={showConfirmPassword ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"}
+            >
+              <SymbolView
+                name={showConfirmPassword
+                  ? { ios: "eye.slash", android: "visibility_off", web: "visibility_off" }
+                  : { ios: "eye", android: "visibility", web: "visibility" }}
+                size={22}
+                tintColor="#355A42"
+              />
+            </Pressable>
+          </View>
 
           {confirmPassword.length > 0 && (
             <Text
@@ -326,7 +367,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: "100%",
-    backgroundColor: "rgba(255,255,255,0.45)",
+    backgroundColor: "transparent",
   },
 
   content: {
@@ -397,6 +438,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     marginBottom: 14,
+  },
+
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 8,
+  },
+
+  passwordInput: {
+    flex: 1,
+    height: "100%",
+    minWidth: 0,
+    fontSize: 16,
+    color: "#333",
+  },
+
+  eyeButton: {
+    width: 40,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   passwordRules: {

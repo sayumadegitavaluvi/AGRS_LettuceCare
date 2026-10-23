@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,31 +9,113 @@ import {
   SafeAreaView,
   StatusBar,
 } from "react-native";
-import { router, type Href } from "expo-router";
+import { router, type Href, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Samakan alamat ini dengan API_URL di login.tsx, register.tsx, dan profile.tsx.
+// Untuk iPhone, gunakan IP LAN komputer yang menjalankan FastAPI, bukan localhost.
+const API_URL = "http://172.20.10.4:8000";
+
+type AccountResponse = {
+  username?: unknown;
+  email?: unknown;
+};
 
 export default function HomeScreen() {
-  useEffect(() => {
-    const checkBackend = async () => {
-      try {
-        const response = await fetch("http://192.168.1.3:8000/");
+  const [username, setUsername] = useState("Pengguna");
+  const [showLoginBanner, setShowLoginBanner] = useState(false);
 
-        if (!response.ok) {
-          console.log(
-            "Backend merespons dengan status:",
-            response.status
-          );
-          return;
+  // Perbarui sapaan setiap kali pengguna membuka Beranda.
+  // Data diambil dari akun yang terautentikasi, bukan dari teks contoh.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setUsername("Pengguna");
+
+      const loadUsername = async () => {
+        try {
+          const token = await AsyncStorage.getItem("access_token");
+
+          if (!token) {
+            // Belum login: tampilkan sapaan netral, tanpa data pengguna lain.
+            return;
+          }
+
+          const response = await fetch(`${API_URL}/users/me`, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.status === 401 || response.status === 403) {
+            await AsyncStorage.multiRemove(["access_token", "user_email"]);
+            if (active) router.replace("/login");
+            return;
+          }
+
+          if (!response.ok) {
+            console.log(`Gagal mengambil profil (HTTP ${response.status}).`);
+            return;
+          }
+
+          const data: AccountResponse = await response.json();
+          if (
+            active &&
+            typeof data.username === "string" &&
+            data.username.trim().length > 0
+          ) {
+            setUsername(data.username.trim());
+          }
+        } catch (error) {
+          // Backend sedang offline/tidak terjangkau: Beranda tetap tampil.
+          console.log("Belum bisa memuat username dari backend:", error);
         }
+      };
 
-        const data = await response.json();
-        console.log("Backend terhubung:", data.message);
-      } catch (error) {
-        console.log("Backend tidak terhubung:", error);
-      }
-    };
+      void loadUsername();
 
-    checkBackend();
-  }, []);
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  // Perlihatkan notifikasi hanya setelah login sukses, bukan tiap kunjungan.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      const loadLoginBanner = async () => {
+        try {
+          const flag = await AsyncStorage.getItem("show_login_success_banner");
+          if (flag === "true") {
+            // Hapus setelah dibaca agar banner tidak muncul saat Beranda dibuka lagi.
+            await AsyncStorage.removeItem("show_login_success_banner");
+            if (active) setShowLoginBanner(true);
+          }
+        } catch (error) {
+          console.log("Gagal membaca status notifikasi login:", error);
+        }
+      };
+
+      void loadLoginBanner();
+
+      return () => {
+        active = false;
+        setShowLoginBanner(false);
+      };
+    }, [])
+  );
+
+  // Notifikasi keberhasilan menghilang sendiri setelah 3,5 detik.
+  useEffect(() => {
+    if (!showLoginBanner) return;
+
+    const timer = setTimeout(() => setShowLoginBanner(false), 3500);
+    return () => clearTimeout(timer);
+  }, [showLoginBanner]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -68,11 +150,30 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {/* BANNER LOGIN BERHASIL — MUNCUL SEKALI SETELAH LOGIN */}
+          {showLoginBanner && (
+            <View
+              style={styles.successBanner}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              <View style={styles.successBannerIcon}>
+                <Text style={styles.successBannerIconText}>✓</Text>
+              </View>
+              <View style={styles.successBannerContent}>
+                <Text style={styles.successBannerTitle}>Login berhasil!</Text>
+                <Text style={styles.successBannerText}>
+                  Selamat datang di LettuceCare!
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* SAPAAN DAN ILUSTRASI */}
           <View style={styles.hero}>
             <View style={styles.heroText}>
               <Text style={styles.greeting}>
-                Halo,{"\n"}Petani Selada!
+                Halo,{"\n"}{username}!
               </Text>
 
               <Text style={styles.description}>
@@ -343,6 +444,55 @@ const styles = StyleSheet.create({
   notificationIcon: {
     color: "#287A45",
     fontSize: 25,
+  },
+
+  successBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    borderColor: "#A5D6A7",
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    marginBottom: 17,
+    shadowColor: "#2D7D4C",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+
+  successBannerIcon: {
+    width: 33,
+    height: 33,
+    borderRadius: 17,
+    backgroundColor: "#278B48",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  successBannerIconText: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
+  },
+
+  successBannerContent: {
+    flex: 1,
+  },
+
+  successBannerTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1E6B3D",
+    marginBottom: 3,
+  },
+
+  successBannerText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#276A43",
   },
 
   hero: {
