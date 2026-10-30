@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -15,13 +15,15 @@ import {
 import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.1.3:8000";
+const API_URL = "http://172.20.10.4:8000";
 
 type Filter = "Semua" | "Sehat" | "Terinfeksi";
 
 type HistoryResponse = {
   id: number;
   image_path?: string;
+  plant_age?: string | null;
+  plant_condition?: string | null;
   diagnosis: string;
   confidence: number;
   created_at: string;
@@ -32,6 +34,8 @@ type HistoryResponse = {
 type RecordItem = {
   id: string;
   disease: string;
+  plantAge: string | null;
+  plantCondition: string | null;
   status: "Sehat" | "Terinfeksi";
   date: string;
   confidence: number;
@@ -42,7 +46,13 @@ type RecordItem = {
 };
 
 function formatDate(value: string) {
-  const date = new Date(value);
+  // Backend menyimpan waktu UTC. Jika responsnya tidak punya zona waktu
+  // (misalnya "2026-10-22T22:50:00"), perlakukan sebagai UTC, bukan waktu lokal.
+  // Timestamp dengan zona waktu eksplisit (Z atau +07:00) tidak diubah.
+  const normalized = value.trim().replace(" ", "T");
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized);
+  const timestamp = hasTimezone ? normalized : `${normalized}Z`;
+  const date = new Date(timestamp);
 
   if (Number.isNaN(date.getTime())) {
     return { date: value, time: "" };
@@ -53,11 +63,13 @@ function formatDate(value: string) {
       day: "2-digit",
       month: "short",
       year: "numeric",
+      timeZone: "Asia/Jakarta",
     }),
     time: date.toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
+      timeZone: "Asia/Jakarta",
     }),
   };
 }
@@ -103,6 +115,8 @@ function mapHistory(item: HistoryResponse): RecordItem {
   return {
     id: String(item.id),
     disease: healthy ? "Daun Sehat" : diagnosis,
+    plantAge: item.plant_age?.trim() || null,
+    plantCondition: item.plant_condition?.trim() || null,
     status: healthy ? "Sehat" : "Terinfeksi",
     date: formatted.date,
     time: formatted.time,
@@ -122,6 +136,20 @@ export default function RiwayatScreen() {
   const [selectedRecord, setSelectedRecord] =
     useState<RecordItem | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // Notifikasi hanya muncul sementara dan tidak menghalangi interaksi.
+  useEffect(() => {
+    if (!notice) return;
+
+    const timer = setTimeout(() => setNotice(null), 3500);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -210,12 +238,98 @@ export default function RiwayatScreen() {
   ).length;
 
   function showHistoryDetail(item: RecordItem) {
+    setConfirmDelete(false);
     setSelectedRecord(item);
   }
 
   function closeHistoryDetail() {
+    if (deleting) return;
+    setConfirmDelete(false);
     setSelectedRecord(null);
   }
+
+  function cancelDelete() {
+    if (deleting) return;
+    setConfirmDelete(false);
+  }
+
+  // Penghapusan baru dilakukan jika pengguna sudah menyetujui konfirmasi.
+  const deleteSelectedHistory = async () => {
+    if (!selectedRecord || deleting) return;
+
+    const historyId = selectedRecord.id;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    setDeleting(true);
+    setNotice(null);
+
+    try {
+      const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("Sesi login tidak ditemukan. Silakan login kembali.");
+      }
+
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch(
+        `${API_URL}/history/${encodeURIComponent(historyId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          signal: controller.signal,
+        }
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Sesi login sudah berakhir. Silakan login kembali.");
+      }
+      if (response.status === 404) {
+        throw new Error("Riwayat ini tidak ditemukan atau sudah dihapus.");
+      }
+      if (!response.ok) {
+        throw new Error("Riwayat belum berhasil dihapus. Silakan coba lagi.");
+      }
+
+      // Perbarui daftar, filter, dan ringkasan dari state yang sama.
+      // Data tidak dihapus dari tampilan sebelum backend menyatakan berhasil.
+      setHistory((previous) =>
+        previous.filter((record) => record.id !== historyId)
+      );
+      setFailedImages((previous) => {
+        const next = new Set(previous);
+        next.delete(historyId);
+        return next;
+      });
+      setConfirmDelete(false);
+      setSelectedRecord(null);
+      setNotice({
+        type: "success",
+        message: "Riwayat pemeriksaan berhasil dihapus.",
+      });
+    } catch (err) {
+      const rawMessage = err instanceof Error ? err.message : "";
+      const timeoutFailure =
+        /aborterror|aborted|operation was aborted/i.test(rawMessage);
+      const networkFailure =
+        /fetch failed|network request failed|could not connect|failed to fetch/i.test(
+          rawMessage
+        );
+      setConfirmDelete(false);
+      setNotice({
+        type: "error",
+        message: timeoutFailure
+          ? "Permintaan terlalu lama. Periksa koneksi dan muat ulang riwayat."
+          : networkFailure
+            ? "Tidak dapat terhubung ke backend. Periksa koneksi dan coba lagi."
+            : rawMessage || "Penghapusan gagal. Silakan coba lagi.",
+      });
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setDeleting(false);
+    }
+  };
 
   function markImageFailed(id: string) {
     setFailedImages((previous) => {
@@ -550,6 +664,54 @@ export default function RiwayatScreen() {
           </Text>
         </ScrollView>
 
+        {/* Satu banner notifikasi untuk hasil penghapusan. */}
+        {notice && (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.noticeBanner,
+              notice.type === "success"
+                ? styles.noticeSuccess
+                : styles.noticeError,
+            ]}
+          >
+            <Text
+              style={[
+                styles.noticeIcon,
+                notice.type === "success"
+                  ? styles.noticeTextSuccess
+                  : styles.noticeTextError,
+              ]}
+            >
+              {notice.type === "success" ? "✓" : "!"}
+            </Text>
+            <View style={styles.noticeContent}>
+              <Text
+                style={[
+                  styles.noticeTitle,
+                  notice.type === "success"
+                    ? styles.noticeTextSuccess
+                    : styles.noticeTextError,
+                ]}
+              >
+                {notice.type === "success"
+                  ? "Riwayat berhasil dihapus!"
+                  : "Penghapusan gagal"}
+              </Text>
+              <Text
+                style={[
+                  styles.noticeDescription,
+                  notice.type === "success"
+                    ? styles.noticeTextSuccess
+                    : styles.noticeTextError,
+                ]}
+              >
+                {notice.message}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Modal detail pemeriksaan */}
         <Modal
           visible={selectedRecord !== null}
@@ -561,11 +723,54 @@ export default function RiwayatScreen() {
           <View style={styles.modalOverlay}>
             <Pressable
               style={StyleSheet.absoluteFill}
-              onPress={closeHistoryDetail}
+              onPress={confirmDelete ? cancelDelete : closeHistoryDetail}
+              disabled={deleting}
               accessibilityLabel="Tutup detail riwayat"
             />
 
-            {selectedRecord && (
+            {selectedRecord && confirmDelete ? (
+              <View style={styles.deleteConfirmationCard}>
+                <View style={styles.deleteWarningIcon}>
+                  <Text style={styles.deleteWarningMark}>!</Text>
+                </View>
+                <Text style={styles.deleteConfirmTitle}>
+                  Hapus riwayat ini?
+                </Text>
+                <Text style={styles.deleteConfirmDescription}>
+                  Pemeriksaan {selectedRecord.disease} pada {selectedRecord.date}
+                  {" "}akan dihapus dari akunmu. Tindakan ini tidak dapat dibatalkan.
+                </Text>
+                <View style={styles.deleteActions}>
+                  <Pressable
+                    style={[styles.deleteCancelButton, deleting && styles.disabledButton]}
+                    onPress={cancelDelete}
+                    disabled={deleting}
+                    accessibilityRole="button"
+                    accessibilityLabel="Batalkan penghapusan riwayat"
+                  >
+                    <Text style={styles.deleteCancelText}>Batal</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.deleteConfirmButton, deleting && styles.disabledButton]}
+                    onPress={deleteSelectedHistory}
+                    disabled={deleting}
+                    accessibilityRole="button"
+                    accessibilityLabel="Hapus riwayat pemeriksaan"
+                  >
+                    {deleting ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.deleteConfirmText}>Hapus</Text>
+                    )}
+                  </Pressable>
+                </View>
+                {deleting && (
+                  <Text style={styles.deleteLoadingText}>
+                    Menghapus riwayat pemeriksaan...
+                  </Text>
+                )}
+              </View>
+            ) : selectedRecord ? (
               <View style={styles.modalCard}>
                 <View style={styles.modalHeader}>
                   <View style={styles.modalHeaderText}>
@@ -647,6 +852,26 @@ export default function RiwayatScreen() {
                     </Text>
                   </View>
 
+                  {/* Informasi yang sudah tersimpan di backend saat deteksi. */}
+                  <View style={styles.plantInfoPanel}>
+                    <Text style={styles.plantInfoHeading}>
+                      Informasi Tanaman
+                    </Text>
+                    <View style={styles.plantInfoRow}>
+                      <Text style={styles.plantInfoLabel}>Umur tanaman</Text>
+                      <Text style={styles.plantInfoValue}>
+                        {selectedRecord.plantAge || "Belum dicatat"}
+                      </Text>
+                    </View>
+                    <View style={styles.plantInfoDivider} />
+                    <View style={styles.plantInfoRow}>
+                      <Text style={styles.plantInfoLabel}>Kondisi tanaman</Text>
+                      <Text style={styles.plantInfoValue}>
+                        {selectedRecord.plantCondition || "Belum dicatat"}
+                      </Text>
+                    </View>
+                  </View>
+
                   <View style={styles.accuracyPanel}>
                     <View style={styles.accuracyHeader}>
                       <Text style={styles.accuracyLabel}>
@@ -717,6 +942,17 @@ export default function RiwayatScreen() {
                 </ScrollView>
 
                 <Pressable
+                  onPress={() => setConfirmDelete(true)}
+                  style={styles.modalDeleteButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Hapus riwayat pemeriksaan ini"
+                >
+                  <Text style={styles.modalDeleteText}>
+                    Hapus riwayat
+                  </Text>
+                </Pressable>
+
+                <Pressable
                   onPress={closeHistoryDetail}
                   style={styles.modalDoneButton}
                 >
@@ -725,7 +961,7 @@ export default function RiwayatScreen() {
                   </Text>
                 </Pressable>
               </View>
-            )}
+            ) : null}
           </View>
         </Modal>
 
@@ -1338,6 +1574,45 @@ const styles = StyleSheet.create({
     color: "#7D8D7F",
     fontSize: 11,
   },
+  plantInfoPanel: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E3EBDD",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+  },
+  plantInfoHeading: {
+    color: "#244E36",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 11,
+  },
+  plantInfoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  plantInfoLabel: {
+    color: "#718674",
+    fontSize: 11,
+    width: 94,
+    lineHeight: 18,
+  },
+  plantInfoValue: {
+    color: "#245B3A",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "right",
+    flex: 1,
+    lineHeight: 18,
+  },
+  plantInfoDivider: {
+    height: 1,
+    backgroundColor: "#EDF0EA",
+    marginVertical: 10,
+  },
   accuracyPanel: {
     backgroundColor: "#EDF4E9",
     borderRadius: 16,
@@ -1407,6 +1682,152 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "800",
+  },
+  // Banner tidak menggeser konten dan tetap terlihat setelah modal ditutup.
+  noticeBanner: {
+    position: "absolute",
+    top: 10,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderRadius: 18,
+    zIndex: 15,
+    elevation: 12,
+    shadowColor: "#1F4A32",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+  },
+  noticeSuccess: {
+    backgroundColor: "#E8F5E9",
+    borderColor: "#A5D6A7",
+  },
+  noticeError: {
+    backgroundColor: "#FDEBE7",
+    borderColor: "#E7B0A3",
+  },
+  noticeIcon: {
+    fontSize: 27,
+    fontWeight: "900",
+    width: 32,
+  },
+  noticeContent: {
+    flex: 1,
+  },
+  noticeTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+  noticeDescription: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  noticeTextSuccess: {
+    color: "#236B40",
+  },
+  noticeTextError: {
+    color: "#A3483B",
+  },
+  modalDeleteButton: {
+    minHeight: 46,
+    borderRadius: 15,
+    borderWidth: 1.2,
+    borderColor: "#E7B4A9",
+    backgroundColor: "#FDEDE8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 6,
+    marginBottom: 9,
+  },
+  modalDeleteText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#B74E3C",
+  },
+  deleteConfirmationCard: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 26,
+    paddingBottom: 22,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5EBE3",
+  },
+  deleteWarningIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FBEAE5",
+    marginBottom: 14,
+  },
+  deleteWarningMark: {
+    color: "#BC5543",
+    fontSize: 32,
+    fontWeight: "900",
+  },
+  deleteConfirmTitle: {
+    fontSize: 21,
+    fontWeight: "800",
+    color: "#204F36",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  deleteConfirmDescription: {
+    color: "#718174",
+    fontSize: 13,
+    lineHeight: 21,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  deleteActions: {
+    width: "100%",
+    flexDirection: "row",
+    gap: 10,
+  },
+  deleteCancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#E8F0E4",
+  },
+  deleteCancelText: {
+    color: "#2C6542",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#B85343",
+  },
+  deleteConfirmText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  deleteLoadingText: {
+    color: "#6D8571",
+    fontSize: 12,
+    marginTop: 12,
+    textAlign: "center",
   },
   pressed: {
     opacity: 0.82,

@@ -11,7 +11,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -32,7 +32,7 @@ const CONDITION_OPTIONS = [
 ];
 
 // Alamat backend FastAPI pada laptop.
-const API_BASE_URL = "http://192.168.1.3:8000";
+const API_BASE_URL = "http://172.20.10.4:8000";
 
 // Kunci penyimpanan foto yang dibaca oleh result.tsx.
 const IMAGE_STORAGE_KEY = "last_detection_image";
@@ -42,6 +42,37 @@ export default function DetectScreen() {
   const [selectedAge, setSelectedAge] = useState("");
   const [selectedCondition, setSelectedCondition] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Notifikasi ringan yang tidak menghalangi pengguna mengisi formulir.
+  const [notice, setNotice] = useState<{
+    message: string;
+    kind: "success" | "info" | "error";
+  } | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    };
+  }, []);
+
+  const clearNotice = () => {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = null;
+    setNotice(null);
+  };
+
+  const showNotice = (
+    message: string,
+    kind: "success" | "info" | "error" = "success"
+  ) => {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    setNotice({ message, kind });
+    noticeTimer.current = setTimeout(
+      () => setNotice(null),
+      kind === "error" ? 5500 : 2800
+    );
+  };
 
   // Memilih foto dari galeri.
   const pickImage = async () => {
@@ -65,6 +96,7 @@ export default function DetectScreen() {
 
       if (!result.canceled && result.assets.length > 0) {
         setImage(result.assets[0].uri);
+        showNotice("Foto berhasil dipilih dari galeri.");
       }
     } catch (error) {
       console.error("Gagal membuka galeri:", error);
@@ -95,6 +127,7 @@ export default function DetectScreen() {
 
       if (!result.canceled && result.assets.length > 0) {
         setImage(result.assets[0].uri);
+        showNotice("Foto berhasil diambil dari kamera.");
       }
     } catch (error) {
       console.error("Gagal membuka kamera:", error);
@@ -182,6 +215,7 @@ export default function DetectScreen() {
     if (isAnalyzing) return;
 
     setIsAnalyzing(true);
+    showNotice("Foto sedang dikirim untuk dianalisis.", "info");
 
     let persistentImageUri: string | null = null;
 
@@ -190,12 +224,12 @@ export default function DetectScreen() {
       const token = await AsyncStorage.getItem("access_token");
 
       if (!token) {
+        clearNotice();
         Alert.alert(
           "Belum login",
-          "Sesi login tidak ditemukan. Silakan login kembali."
+          "Sesi login tidak ditemukan. Silakan login kembali.",
+          [{ text: "Login", onPress: () => router.replace("/login") }]
         );
-
-        router.replace("/login");
         return;
       }
 
@@ -241,8 +275,8 @@ export default function DetectScreen() {
           fieldName: "file",
           mimeType,
           parameters: {
-          plant_age: selectedAge,
-          plant_condition: selectedCondition,
+            plant_age: selectedAge,
+            plant_condition: selectedCondition,
           },
           headers: {
             Authorization: `Bearer ${token}`,
@@ -277,31 +311,40 @@ export default function DetectScreen() {
           uploadResult.status === 401 ||
           uploadResult.status === 403
         ) {
+          clearNotice();
           Alert.alert(
             "Sesi tidak valid",
-            "Silakan login kembali sebelum melakukan deteksi."
+            "Silakan login kembali sebelum melakukan deteksi.",
+            [{ text: "Login", onPress: () => router.replace("/login") }]
           );
-
-          router.replace("/login");
           return;
         }
 
-        const detail =
-          responseData?.detail ||
-          responseData?.message ||
-          `Deteksi gagal. HTTP ${uploadResult.status}.`;
+        if (uploadResult.status === 422) {
+          throw new Error(
+            "Foto atau informasi tanaman belum sesuai. Periksa kembali pilihan dan coba lagi."
+          );
+        }
 
-        throw new Error(
-          typeof detail === "string"
-            ? detail
-            : JSON.stringify(detail)
-        );
+        if (uploadResult.status >= 500) {
+          throw new Error(
+            "Server sedang mengalami gangguan. Silakan coba kembali."
+          );
+        }
+
+        const fallbackDetail = responseData?.detail ?? responseData?.message;
+        const message =
+          typeof fallbackDetail === "string" && fallbackDetail.trim()
+            ? fallbackDetail
+            : `Deteksi gagal (HTTP ${uploadResult.status}). Coba kembali.`;
+        throw new Error(message);
       }
 
       // LANGKAH 7:
       // Buka halaman hasil.
       // Foto TIDAK dikirim melalui parameter navigasi.
       // result.tsx mengambilnya dari AsyncStorage.
+      clearNotice();
       router.push({
         pathname: "/result",
         params: {
@@ -311,17 +354,22 @@ export default function DetectScreen() {
         },
       });
     } catch (error) {
-      console.error("Gagal melakukan deteksi:", error);
+      // Error API yang tertangani tidak perlu console.error: dalam Expo Go
+      // mode pengembangan, console.error dapat memicu LogBox tambahan.
+      const rawMessage = error instanceof Error ? error.message : "";
+      const isConnectionError =
+        /fetch failed|network request failed|could not connect|timed out|connection refused|econnrefused/i.test(
+          rawMessage
+        );
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Terjadi kesalahan saat mengirim foto.";
+      const message = isConnectionError
+        ? "Tidak dapat terhubung ke server. Pastikan backend aktif dan HP terhubung ke jaringan yang dapat mengakses server."
+        : rawMessage && rawMessage.length <= 250
+          ? rawMessage
+          : "Terjadi kendala saat memeriksa foto. Silakan coba kembali.";
 
-      Alert.alert(
-        "Deteksi gagal",
-        `${message}\n\nPastikan backend aktif, alamat API benar, dan HP terhubung ke jaringan Wi-Fi yang sama dengan laptop.`
-      );
+      // Satu banner error menggantikan toast proses dan popup Alert.
+      showNotice(message, "error");
     } finally {
       setIsAnalyzing(false);
     }
@@ -584,11 +632,68 @@ export default function DetectScreen() {
           lebih optimal.
         </Text>
       </ScrollView>
+
+      {/* Muncul sebentar, tanpa meminta pengguna menekan OK. */}
+      {notice && (
+        <View
+          pointerEvents="none"
+          accessibilityLiveRegion="polite"
+          style={[
+            styles.noticeToast,
+            notice.kind === "info" && styles.noticeToastInfo,
+            notice.kind === "error" && styles.noticeToastError,
+          ]}
+        >
+          <Text
+            style={[
+              styles.noticeToastText,
+              notice.kind === "error" && styles.noticeToastTextError,
+            ]}
+          >
+            {notice.kind === "error" ? `Deteksi gagal: ${notice.message}` : notice.message}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  noticeToast: {
+    position: "absolute",
+    top: 72,
+    left: 22,
+    right: 22,
+    zIndex: 30,
+    elevation: 10,
+    backgroundColor: "#E9F7EA",
+    borderColor: "#B7DBBF",
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 17,
+    shadowColor: "#244F37",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  noticeToastInfo: {
+    backgroundColor: "#F2F8EE",
+  },
+  noticeToastError: {
+    backgroundColor: "#FFF0EF",
+    borderColor: "#E9B8B2",
+  },
+  noticeToastTextError: {
+    color: "#A33731",
+  },
+  noticeToastText: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700",
+    color: "#205C39",
+    textAlign: "center",
+  },
   screen: {
     flex: 1,
     backgroundColor: "#F4F8F1",

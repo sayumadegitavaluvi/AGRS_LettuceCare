@@ -11,7 +11,7 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../assets/images/lettuce-bg.jpeg")}
+        source={require("../../assets/images/lettuce-login-bg.png")}
         style={styles.background}
       />
 
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: "100%",
-    backgroundColor: "rgba(255,255,255,0.38)",
+    backgroundColor: "transparent",
   },
 
   content: {
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   logoWrapper: {
     width: 110,
     height: 110,
-    borderRadius: 28, // biar tumpul, bukan kotak lancip
+    borderRadius: 28,
     backgroundColor: "rgba(255,255,255,0.88)",
     justifyContent: "center",
     alignItems: "center",

@@ -6,18 +6,60 @@ import {
   TextInput,
   Pressable,
   Alert,
+  Keyboard,
 } from "react-native";
 
-import { useState } from "react";
-import { router } from "expo-router";
+import { useCallback, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SymbolView } from "expo-symbols";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.1.3:8000";
+const API_URL = "http://172.20.10.4:8000";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showLogoutBanner, setShowLogoutBanner] = useState(false);
+  const insets = useSafeAreaInsets();
+
+  // Tampilkan pesan logout satu kali saat halaman Login kembali dibuka.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      let bannerTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const checkLogoutNotice = async () => {
+        try {
+          const shouldShow = await AsyncStorage.getItem(
+            "show_logout_success_banner"
+          );
+          if (shouldShow === "true") {
+            await AsyncStorage.removeItem("show_logout_success_banner");
+            if (active) {
+              setShowLogoutBanner(true);
+              bannerTimer = setTimeout(() => {
+                if (active) setShowLogoutBanner(false);
+              }, 3500);
+            }
+          } else if (active) {
+            setShowLogoutBanner(false);
+          }
+        } catch {
+          if (active) setShowLogoutBanner(false);
+        }
+      };
+
+      void checkLogoutNotice();
+
+      return () => {
+        active = false;
+        if (bannerTimer) clearTimeout(bannerTimer);
+      };
+    }, [])
+  );
 
   const handleLogin = async () => {
     // Validasi input
@@ -87,7 +129,10 @@ export default function LoginScreen() {
         email.trim()
       );
 
-      // Masuk ke halaman Home
+      // Tandai login sukses untuk menampilkan banner sekali di Beranda.
+      await AsyncStorage.setItem("show_login_success_banner", "true");
+
+      // Langsung masuk ke Beranda tanpa popup konfirmasi.
       router.replace("/home");
 
     } catch (error) {
@@ -98,10 +143,8 @@ export default function LoginScreen() {
 
       Alert.alert(
         "Login Gagal",
-        message.includes(
-          "Network request failed"
-        )
-          ? "Tidak dapat terhubung ke server. Pastikan laptop dan HP berada di jaringan yang sama dan backend masih berjalan."
+        /Network request failed|fetch failed|Could not connect|UnexpectedException/i.test(message)
+          ? "Tidak dapat terhubung ke server. Periksa alamat API, koneksi Wi-Fi, dan pastikan backend berjalan."
           : message
       );
 
@@ -116,7 +159,7 @@ export default function LoginScreen() {
       {/* Background */}
       <Image
         source={require(
-          "../../assets/images/lettuce-bg.jpeg"
+          "../../assets/images/lettuce-login-bg.png"
         )}
         style={styles.background}
       />
@@ -161,19 +204,37 @@ export default function LoginScreen() {
             editable={!loading}
           />
 
-          {/* Password */}
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#7A8F7D"
-            secureTextEntry
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            autoCapitalize="none"
-            editable={!loading}
-            onSubmitEditing={handleLogin}
-            returnKeyType="done"
-          />
+          {/* Password dengan tombol tampilkan/sembunyikan */}
+          <View style={[styles.input, styles.passwordContainer]}>
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#7A8F7D"
+              secureTextEntry={!showPassword}
+              style={styles.passwordInput}
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              editable={!loading}
+              onSubmitEditing={() => Keyboard.dismiss()}
+              returnKeyType="done"
+            />
+            <Pressable
+              onPress={() => setShowPassword((prev) => !prev)}
+              disabled={loading}
+              style={styles.eyeButton}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+            >
+              <SymbolView
+                name={showPassword
+                  ? { ios: "eye.slash", android: "visibility_off", web: "visibility_off" }
+                  : { ios: "eye", android: "visibility", web: "visibility" }}
+                size={22}
+                tintColor="#355A42"
+              />
+            </Pressable>
+          </View>
 
           {/* Login Button */}
           <Pressable
@@ -205,11 +266,75 @@ export default function LoginScreen() {
 
         </View>
       </View>
+
+      {/* Notifikasi logout berhasil: tidak memerlukan tombol OK. */}
+      {showLogoutBanner && (
+        <View
+          pointerEvents="none"
+          accessibilityLiveRegion="polite"
+          style={[styles.logoutSuccessBanner, { top: insets.top + 16 }]}
+        >
+          <View style={styles.logoutSuccessIcon}>
+            <Text style={styles.logoutSuccessCheck}>✓</Text>
+          </View>
+          <View style={styles.logoutSuccessBody}>
+            <Text style={styles.logoutSuccessTitle}>Logout berhasil!</Text>
+            <Text style={styles.logoutSuccessText}>
+              Kamu sudah keluar dari akun LettuceCare.
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  logoutSuccessBanner: {
+    position: "absolute",
+    left: 25,
+    right: 25,
+    zIndex: 50,
+    elevation: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    borderColor: "#A5D6A7",
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    shadowColor: "#205D38",
+    shadowOpacity: 0.11,
+    shadowRadius: 9,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  logoutSuccessIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#238B45",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 13,
+  },
+  logoutSuccessCheck: {
+    color: "#FFFFFF",
+    fontSize: 25,
+    fontWeight: "900",
+  },
+  logoutSuccessBody: { flex: 1 },
+  logoutSuccessTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1E6B3D",
+    marginBottom: 4,
+  },
+  logoutSuccessText: {
+    fontSize: 13,
+    color: "#276A43",
+    lineHeight: 18,
+  },
   container: {
     flex: 1,
   },
@@ -226,7 +351,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     backgroundColor:
-      "rgba(255,255,255,0.45)",
+      "transparent",
   },
 
   content: {
@@ -296,6 +421,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     marginBottom: 16,
+  },
+
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 8,
+  },
+
+  passwordInput: {
+    flex: 1,
+    height: "100%",
+    minWidth: 0,
+    fontSize: 16,
+    color: "#333",
+  },
+
+  eyeButton: {
+    width: 40,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   loginButton: {
