@@ -16,7 +16,11 @@ import { LinearGradient } from "expo-linear-gradient";
 
 // Samakan dengan URL backend di login.tsx dan register.tsx.
 // Jika IP laptop/server berubah, URL ini juga perlu diperbarui.
+<<<<<<< HEAD
 const API_URL = "http://172.20.10.4:8000";
+=======
+const API_URL = "http://10.76.19.53:8000";
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
 
 type UserProfile = {
   username: string;

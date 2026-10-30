@@ -1,3 +1,4 @@
+
 import {
   View,
   Text,
@@ -15,11 +16,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+<<<<<<< HEAD
 const API_URL = "http://172.20.10.4:8000";
+=======
+import { apiRequest } from "../utils/api";
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+<<<<<<< HEAD
+=======
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLogoutBanner, setShowLogoutBanner] = useState(false);
@@ -61,13 +71,81 @@ export default function LoginScreen() {
     }, [])
   );
 
+  const [showLogoutBanner, setShowLogoutBanner] =
+    useState(false);
+
+  const insets = useSafeAreaInsets();
+
+
+  // =========================
+  // Tampilkan pesan logout
+  // =========================
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      let bannerTimer: ReturnType<
+        typeof setTimeout
+      > | null = null;
+
+      const checkLogoutNotice = async () => {
+        try {
+          const shouldShow =
+            await AsyncStorage.getItem(
+              "show_logout_success_banner"
+            );
+
+          if (shouldShow === "true") {
+            await AsyncStorage.removeItem(
+              "show_logout_success_banner"
+            );
+
+            if (active) {
+              setShowLogoutBanner(true);
+
+              bannerTimer = setTimeout(() => {
+                if (active) {
+                  setShowLogoutBanner(false);
+                }
+              }, 3500);
+            }
+          } else if (active) {
+            setShowLogoutBanner(false);
+          }
+        } catch {
+          if (active) {
+            setShowLogoutBanner(false);
+          }
+        }
+      };
+
+      void checkLogoutNotice();
+
+      return () => {
+        active = false;
+
+        if (bannerTimer) {
+          clearTimeout(bannerTimer);
+        }
+      };
+    }, [])
+  );
+
+
+  // =========================
+  // Login
+  // =========================
+
   const handleLogin = async () => {
     // Validasi input
+
     if (!email.trim() || !password) {
       Alert.alert(
         "Login",
         "Email dan password wajib diisi."
       );
+
       return;
     }
 
@@ -75,14 +153,17 @@ export default function LoginScreen() {
       setLoading(true);
 
       // Kirim email dan password ke backend
-      const response = await fetch(
-        `${API_URL}/auth/login`,
+
+      const { response, data } = await apiRequest(
+        "/auth/login",
         {
           method: "POST",
+
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
+
           body: JSON.stringify({
             email: email.trim(),
             password: password,
@@ -90,9 +171,11 @@ export default function LoginScreen() {
         }
       );
 
-      const data = await response.json();
 
-      // Menangani error dari backend
+      // =========================
+      // Error dari backend
+      // =========================
+
       if (!response.ok) {
         const detail = data.detail;
 
@@ -110,29 +193,59 @@ export default function LoginScreen() {
         throw new Error(message);
       }
 
-      // Pastikan token tersedia
+
+      // =========================
+      // Cek token
+      // =========================
+
       if (!data.access_token) {
         throw new Error(
           "Token login tidak ditemukan dari backend."
         );
       }
 
-      // Simpan token untuk akses endpoint protected
+
+      // =========================
+      // Simpan token
+      // =========================
+
       await AsyncStorage.setItem(
         "access_token",
         data.access_token
       );
 
-      // Simpan email user
+
+      // =========================
+      // Simpan email
+      // =========================
+
       await AsyncStorage.setItem(
         "user_email",
         email.trim()
       );
 
+<<<<<<< HEAD
       // Tandai login sukses untuk menampilkan banner sekali di Beranda.
       await AsyncStorage.setItem("show_login_success_banner", "true");
 
       // Langsung masuk ke Beranda tanpa popup konfirmasi.
+=======
+
+      // =========================
+      // Tandai login berhasil
+      // =========================
+
+      await AsyncStorage.setItem(
+        "show_login_success_banner",
+        "true"
+      );
+
+
+      // =========================
+      // Masuk ke Home
+      // =========================
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
       router.replace("/home");
 
     } catch (error) {
@@ -141,11 +254,37 @@ export default function LoginScreen() {
           ? error.message
           : "Tidak dapat terhubung ke server.";
 
+      /*
+       * Jika error koneksi:
+       *
+       * apiRequest() akan meneruskannya
+       * ke connection manager global.
+       *
+       * ConnectionModal ditampilkan
+       * oleh _layout.tsx.
+       */
+
+      const isConnectionError =
+        message === "CONNECTION_TIMEOUT" ||
+        /Network request failed|fetch failed|Could not connect|UnexpectedException|Failed to fetch/i.test(
+          message
+        );
+
+      if (isConnectionError) {
+        return;
+      }
+
+      // Error login biasa
+
       Alert.alert(
         "Login Gagal",
+<<<<<<< HEAD
         /Network request failed|fetch failed|Could not connect|UnexpectedException/i.test(message)
           ? "Tidak dapat terhubung ke server. Periksa alamat API, koneksi Wi-Fi, dan pastikan backend berjalan."
           : message
+=======
+        message
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
       );
 
     } finally {
@@ -153,10 +292,40 @@ export default function LoginScreen() {
     }
   };
 
+
+  // =========================
+  // Navigasi Lupa Password
+  // =========================
+
+  const handleForgotPassword = () => {
+    if (loading) return;
+
+    router.push("/lupa-password");
+  };
+
+
+  // =========================
+  // Navigasi Register
+  // =========================
+
+  const handleRegister = () => {
+    if (loading) return;
+
+    router.push("/register");
+  };
+
+
+  // =========================
+  // Tampilan
+  // =========================
+
   return (
     <View style={styles.container}>
 
-      {/* Background */}
+      {/* =========================
+          Background
+      ========================= */}
+
       <Image
         source={require(
           "../../assets/images/lettuce-login-bg.png"
@@ -166,9 +335,13 @@ export default function LoginScreen() {
 
       <View style={styles.overlay} />
 
+
       <View style={styles.content}>
 
-        {/* Logo */}
+        {/* =========================
+            Logo
+        ========================= */}
+
         <View style={styles.logoWrapper}>
           <Image
             source={require(
@@ -178,7 +351,11 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Title */}
+
+        {/* =========================
+            Title
+        ========================= */}
+
         <Text style={styles.title}>
           Selamat Datang
         </Text>
@@ -188,10 +365,15 @@ export default function LoginScreen() {
           tanaman selada kamu
         </Text>
 
-        {/* Login Card */}
+
+        {/* =========================
+            Login Card
+        ========================= */}
+
         <View style={styles.card}>
 
           {/* Email */}
+
           <TextInput
             placeholder="Email"
             placeholderTextColor="#7A8F7D"
@@ -204,6 +386,7 @@ export default function LoginScreen() {
             editable={!loading}
           />
 
+<<<<<<< HEAD
           {/* Password dengan tombol tampilkan/sembunyikan */}
           <View style={[styles.input, styles.passwordContainer]}>
             <TextInput
@@ -235,12 +418,80 @@ export default function LoginScreen() {
               />
             </Pressable>
           </View>
+=======
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
 
-          {/* Login Button */}
+          {/* Password */}
+
+          <View
+            style={[
+              styles.input,
+              styles.passwordContainer,
+            ]}
+          >
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#7A8F7D"
+              secureTextEntry={!showPassword}
+              style={styles.passwordInput}
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              editable={!loading}
+              onSubmitEditing={() =>
+                Keyboard.dismiss()
+              }
+              returnKeyType="done"
+            />
+
+            {/* Tombol tampil/sembunyikan password */}
+
+            <Pressable
+              onPress={() =>
+                setShowPassword(
+                  (prev) => !prev
+                )
+              }
+              disabled={loading}
+              style={styles.eyeButton}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={
+                showPassword
+                  ? "Sembunyikan password"
+                  : "Tampilkan password"
+              }
+            >
+              <SymbolView
+                name={
+                  showPassword
+                    ? {
+                        ios: "eye.slash",
+                        android: "visibility_off",
+                        web: "visibility_off",
+                      }
+                    : {
+                        ios: "eye",
+                        android: "visibility",
+                        web: "visibility",
+                      }
+                }
+                size={22}
+                tintColor="#355A42"
+              />
+            </Pressable>
+          </View>
+
+
+          {/* =========================
+              Login Button
+          ========================= */}
+
           <Pressable
             style={[
               styles.loginButton,
-              loading && styles.loginButtonDisabled,
+              loading &&
+                styles.loginButtonDisabled,
             ]}
             onPress={handleLogin}
             disabled={loading}
@@ -252,11 +503,28 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
 
-          {/* Register */}
+
+          {/* =========================
+              Lupa Password
+          ========================= */}
+
           <Pressable
-            onPress={() =>
-              router.push("/register")
-            }
+            onPress={handleForgotPassword}
+            disabled={loading}
+            style={styles.forgotButton}
+          >
+            <Text style={styles.forgotText}>
+              Lupa Password?
+            </Text>
+          </Pressable>
+
+
+          {/* =========================
+              Register
+          ========================= */}
+
+          <Pressable
+            onPress={handleRegister}
             disabled={loading}
           >
             <Text style={styles.registerText}>
@@ -267,11 +535,20 @@ export default function LoginScreen() {
         </View>
       </View>
 
+<<<<<<< HEAD
       {/* Notifikasi logout berhasil: tidak memerlukan tombol OK. */}
+=======
+
+      {/* =========================
+          Logout Success Banner
+      ========================= */}
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
       {showLogoutBanner && (
         <View
           pointerEvents="none"
           accessibilityLiveRegion="polite"
+<<<<<<< HEAD
           style={[styles.logoutSuccessBanner, { top: insets.top + 16 }]}
         >
           <View style={styles.logoutSuccessIcon}>
@@ -281,15 +558,53 @@ export default function LoginScreen() {
             <Text style={styles.logoutSuccessTitle}>Logout berhasil!</Text>
             <Text style={styles.logoutSuccessText}>
               Kamu sudah keluar dari akun LettuceCare.
+=======
+          style={[
+            styles.logoutSuccessBanner,
+            {
+              top: insets.top + 16,
+            },
+          ]}
+        >
+          <View style={styles.logoutSuccessIcon}>
+            <Text style={styles.logoutSuccessCheck}>
+              ✓
+            </Text>
+          </View>
+
+          <View style={styles.logoutSuccessBody}>
+            <Text style={styles.logoutSuccessTitle}>
+              Logout berhasil!
+            </Text>
+
+            <Text style={styles.logoutSuccessText}>
+              Kamu sudah keluar dari akun
+              LettuceCare.
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
             </Text>
           </View>
         </View>
       )}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
     </View>
   );
 }
 
+
+// =========================
+// Styles
+// =========================
+
 const styles = StyleSheet.create({
+<<<<<<< HEAD
+=======
+
+  // Logout Success Banner
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   logoutSuccessBanner: {
     position: "absolute",
     left: 25,
@@ -304,11 +619,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 15,
+<<<<<<< HEAD
     shadowColor: "#205D38",
     shadowOpacity: 0.11,
     shadowRadius: 9,
     shadowOffset: { width: 0, height: 3 },
   },
+=======
+
+    shadowColor: "#205D38",
+    shadowOpacity: 0.11,
+    shadowRadius: 9,
+
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+  },
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   logoutSuccessIcon: {
     width: 42,
     height: 42,
@@ -318,23 +647,46 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 13,
   },
+<<<<<<< HEAD
+=======
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   logoutSuccessCheck: {
     color: "#FFFFFF",
     fontSize: 25,
     fontWeight: "900",
   },
+<<<<<<< HEAD
   logoutSuccessBody: { flex: 1 },
+=======
+
+  logoutSuccessBody: {
+    flex: 1,
+  },
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   logoutSuccessTitle: {
     fontSize: 16,
     fontWeight: "800",
     color: "#1E6B3D",
     marginBottom: 4,
   },
+<<<<<<< HEAD
+=======
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   logoutSuccessText: {
     fontSize: 13,
     color: "#276A43",
     lineHeight: 18,
   },
+<<<<<<< HEAD
+=======
+
+
+  // Container
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   container: {
     flex: 1,
   },
@@ -350,8 +702,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: "100%",
+<<<<<<< HEAD
     backgroundColor:
       "transparent",
+=======
+    backgroundColor: "transparent",
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   },
 
   content: {
@@ -361,6 +717,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
   },
 
+
+  // Logo
+
   logoWrapper: {
     width: 100,
     height: 100,
@@ -369,9 +728,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
+
     shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowRadius: 12,
+
     elevation: 6,
   },
 
@@ -380,6 +741,9 @@ const styles = StyleSheet.create({
     height: 70,
     resizeMode: "contain",
   },
+
+
+  // Title
 
   title: {
     fontSize: 36,
@@ -398,17 +762,24 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
+
+  // Card
+
   card: {
     width: 380,
-    backgroundColor:
-      "rgba(255,255,255,0.95)",
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 30,
     padding: 28,
+
     shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 15,
+
     elevation: 8,
   },
+
+
+  // Input
 
   input: {
     width: "100%",
@@ -444,6 +815,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+<<<<<<< HEAD
+=======
+
+  // Login Button
+
+>>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
   loginButton: {
     width: 230,
     height: 54,
@@ -465,11 +842,30 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
+
+  // Forgot Password
+
+  forgotButton: {
+    alignItems: "center",
+    marginTop: 18,
+    paddingVertical: 5,
+  },
+
+  forgotText: {
+    color: "#237B45",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+
+  // Register
+
   registerText: {
     textAlign: "center",
-    marginTop: 22,
+    marginTop: 18,
     color: "#238B45",
     fontSize: 15,
     fontWeight: "700",
   },
+
 });

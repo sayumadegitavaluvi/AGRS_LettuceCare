@@ -1,10 +1,15 @@
 from datetime import datetime, timedelta, timezone
+import secrets
+import hashlib
 
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import (
+    HTTPBearer,
+    HTTPAuthorizationCredentials
+)
 
 
 # =========================
@@ -106,3 +111,46 @@ def get_current_user(
             status_code=401,
             detail="Token tidak valid"
         )
+
+
+# =========================
+# Generate OTP
+# =========================
+
+def generate_otp():
+    """
+    Membuat OTP 6 digit.
+    """
+
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+# =========================
+# Hash OTP
+# =========================
+
+def hash_otp(otp: str):
+    """
+    Mengubah OTP menjadi SHA-256
+    sebelum disimpan ke database.
+    """
+
+    return hashlib.sha256(
+        otp.encode()
+    ).hexdigest()
+
+
+# =========================
+# Verify OTP
+# =========================
+
+def verify_otp(
+    otp: str,
+    otp_hash: str
+):
+    """
+    Memeriksa apakah OTP yang diberikan
+    cocok dengan hash yang tersimpan.
+    """
+
+    return hash_otp(otp) == otp_hash
