@@ -17,19 +17,26 @@ import { SymbolView } from "expo-symbols";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 const API_URL = "http://172.20.10.4:8000";
 =======
 import { apiRequest } from "../utils/api";
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+const API_URL = "http://172.20.10.4:8000";
+>>>>>>> origin/main
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLogoutBanner, setShowLogoutBanner] = useState(false);
@@ -70,6 +77,7 @@ export default function LoginScreen() {
       };
     }, [])
   );
+<<<<<<< HEAD
 
   const [showLogoutBanner, setShowLogoutBanner] =
     useState(false);
@@ -136,6 +144,8 @@ export default function LoginScreen() {
   // =========================
   // Login
   // =========================
+=======
+>>>>>>> origin/main
 
   const handleLogin = async () => {
     // Validasi input
@@ -225,10 +235,14 @@ export default function LoginScreen() {
       );
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
       // Tandai login sukses untuk menampilkan banner sekali di Beranda.
       await AsyncStorage.setItem("show_login_success_banner", "true");
 
       // Langsung masuk ke Beranda tanpa popup konfirmasi.
+<<<<<<< HEAD
 =======
 
       // =========================
@@ -246,6 +260,8 @@ export default function LoginScreen() {
       // =========================
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
       router.replace("/home");
 
     } catch (error) {
@@ -279,6 +295,9 @@ export default function LoginScreen() {
       Alert.alert(
         "Login Gagal",
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
         /Network request failed|fetch failed|Could not connect|UnexpectedException/i.test(message)
           ? "Tidak dapat terhubung ke server. Periksa alamat API, koneksi Wi-Fi, dan pastikan backend berjalan."
           : message
@@ -387,6 +406,9 @@ export default function LoginScreen() {
           />
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
           {/* Password dengan tombol tampilkan/sembunyikan */}
           <View style={[styles.input, styles.passwordContainer]}>
             <TextInput
@@ -418,6 +440,7 @@ export default function LoginScreen() {
               />
             </Pressable>
           </View>
+<<<<<<< HEAD
 =======
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
 
@@ -486,6 +509,8 @@ export default function LoginScreen() {
           {/* =========================
               Login Button
           ========================= */}
+=======
+>>>>>>> origin/main
 
           <Pressable
             style={[
@@ -536,6 +561,7 @@ export default function LoginScreen() {
       </View>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
       {/* Notifikasi logout berhasil: tidak memerlukan tombol OK. */}
 =======
 
@@ -544,11 +570,17 @@ export default function LoginScreen() {
       ========================= */}
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+      {/* Notifikasi logout berhasil: tidak memerlukan tombol OK. */}
+>>>>>>> origin/main
       {showLogoutBanner && (
         <View
           pointerEvents="none"
           accessibilityLiveRegion="polite"
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
           style={[styles.logoutSuccessBanner, { top: insets.top + 16 }]}
         >
           <View style={styles.logoutSuccessIcon}>
@@ -558,6 +590,7 @@ export default function LoginScreen() {
             <Text style={styles.logoutSuccessTitle}>Logout berhasil!</Text>
             <Text style={styles.logoutSuccessText}>
               Kamu sudah keluar dari akun LettuceCare.
+<<<<<<< HEAD
 =======
           style={[
             styles.logoutSuccessBanner,
@@ -581,14 +614,19 @@ export default function LoginScreen() {
               Kamu sudah keluar dari akun
               LettuceCare.
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
             </Text>
           </View>
         </View>
       )}
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
     </View>
   );
 }
@@ -600,11 +638,14 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
   // Logout Success Banner
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   logoutSuccessBanner: {
     position: "absolute",
     left: 25,
@@ -620,11 +661,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
     shadowColor: "#205D38",
     shadowOpacity: 0.11,
     shadowRadius: 9,
     shadowOffset: { width: 0, height: 3 },
   },
+<<<<<<< HEAD
 =======
 
     shadowColor: "#205D38",
@@ -638,6 +683,8 @@ const styles = StyleSheet.create({
   },
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   logoutSuccessIcon: {
     width: 42,
     height: 42,
@@ -648,14 +695,18 @@ const styles = StyleSheet.create({
     marginRight: 13,
   },
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   logoutSuccessCheck: {
     color: "#FFFFFF",
     fontSize: 25,
     fontWeight: "900",
   },
+<<<<<<< HEAD
 <<<<<<< HEAD
   logoutSuccessBody: { flex: 1 },
 =======
@@ -665,6 +716,9 @@ const styles = StyleSheet.create({
   },
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+  logoutSuccessBody: { flex: 1 },
+>>>>>>> origin/main
   logoutSuccessTitle: {
     fontSize: 16,
     fontWeight: "800",
@@ -672,14 +726,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   logoutSuccessText: {
     fontSize: 13,
     color: "#276A43",
     lineHeight: 18,
   },
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 
@@ -687,6 +745,8 @@ const styles = StyleSheet.create({
   // Container
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   container: {
     flex: 1,
   },
@@ -705,9 +765,12 @@ const styles = StyleSheet.create({
 <<<<<<< HEAD
     backgroundColor:
       "transparent",
+<<<<<<< HEAD
 =======
     backgroundColor: "transparent",
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   },
 
   content: {
@@ -816,11 +879,14 @@ const styles = StyleSheet.create({
   },
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
   // Login Button
 
 >>>>>>> 22e3cee (feat: implement forgot password with email OTP and connection handling)
+=======
+>>>>>>> origin/main
   loginButton: {
     width: 230,
     height: 54,

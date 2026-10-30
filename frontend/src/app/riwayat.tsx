@@ -15,7 +15,11 @@ import {
 import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+<<<<<<< HEAD
 const API_URL = "http://10.212.169.53:8000";
+=======
+const API_URL = "http://172.20.10.4:8000";
+>>>>>>> origin/main
 
 type Filter = "Semua" | "Sehat" | "Terinfeksi";
 
