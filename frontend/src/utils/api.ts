@@ -1,15 +1,13 @@
 import { showConnectionError } from "./connection";
 
-export const API_URL = "http://10.212.169.53:8000";
+export const API_URL =
+  process.env.EXPO_PUBLIC_API_URL?.trim() || "http://192.168.18.5:8000";
 
 export async function apiRequest(
   endpoint: string,
   options: RequestInit = {}
 ) {
-  const request = fetch(
-    `${API_URL}${endpoint}`,
-    options
-  );
+  const request = fetch(`${API_URL}${endpoint}`, options);
 
   const timeout = new Promise<never>((_, reject) => {
     setTimeout(() => {

@@ -13,12 +13,7 @@ import {
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-
-<<<<<<< HEAD
-const API_URL = "http://10.212.169.53:8000";
-=======
-const API_URL = "http://172.20.10.4:8000";
->>>>>>> origin/main
+import { API_URL } from "../utils/api";
 
 export default function RegisterScreen() {
   const [username, setUsername] = useState("");

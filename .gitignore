@@ -17,3 +17,10 @@ frontend/.expo/
 # Environment variables
 .env
 frontend/.env
+
+# Environment variables dan data rahasia
+.env
+.env.*
+
+# File contoh environment boleh diupload
+!.env.example

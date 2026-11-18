@@ -11,14 +11,7 @@ import {
 } from "react-native";
 import { router, type Href, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Samakan alamat ini dengan API_URL di login.tsx, register.tsx, dan profile.tsx.
-// Untuk iPhone, gunakan IP LAN komputer yang menjalankan FastAPI, bukan localhost.
-<<<<<<< HEAD
-const API_URL = "http://10.212.169.53:8000";
-=======
-const API_URL = "http://172.20.10.4:8000";
->>>>>>> origin/main
+import { API_URL } from "../utils/api";
 
 type AccountResponse = {
   username?: unknown;

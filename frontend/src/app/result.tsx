@@ -307,7 +307,7 @@ export default function ResultScreen() {
           <View style={styles.accuracyHeader}>
             <View>
               <Text style={styles.accuracyLabel}>
-                Akurasi deteksi
+                Tingkat keyakinan AI
               </Text>
               <Text style={styles.accuracyValue}>
                 {accuracy.toFixed(2)}%
@@ -334,6 +334,23 @@ export default function ResultScreen() {
             Nilai skor yang dikembalikan oleh model AI.
           </Text>
         </LinearGradient>
+
+        {hasDetectionResult && (
+          <View style={styles.aiInfoCard}>
+            <View style={styles.aiInfoIcon}>
+              <Text style={styles.aiInfoIconText}>i</Text>
+            </View>
+
+            <View style={styles.aiInfoBody}>
+              <Text style={styles.aiInfoTitle}>
+                Informasi Hasil Deteksi
+              </Text>
+              <Text style={styles.aiInfoDescription}>
+                Hasil deteksi merupakan prediksi berdasarkan analisis AI dan tidak menjamin diagnosis 100% akurat. Gunakan hasil ini sebagai informasi awal mengenai kondisi tanaman selada.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* PENYEBAB */}
         <View style={styles.recommendHeader}>
@@ -756,6 +773,52 @@ const styles = StyleSheet.create({
     padding: 22,
     marginBottom: 30,
     overflow: "hidden",
+  },
+
+  aiInfoCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#EAF6E8",
+    borderWidth: 1,
+    borderColor: "#BFDDBE",
+    borderRadius: 20,
+    padding: 16,
+    marginTop: -14,
+    marginBottom: 30,
+  },
+
+  aiInfoIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#D3EBCF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  aiInfoIconText: {
+    color: "#277345",
+    fontSize: 21,
+    fontWeight: "900",
+  },
+
+  aiInfoBody: {
+    flex: 1,
+  },
+
+  aiInfoTitle: {
+    color: "#205D3D",
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "900",
+    marginBottom: 5,
+  },
+
+  aiInfoDescription: {
+    color: "#55725D",
+    fontSize: 13,
+    lineHeight: 20,
   },
 
   heroTop: {

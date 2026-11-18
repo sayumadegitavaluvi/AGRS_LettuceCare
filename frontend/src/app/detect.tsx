@@ -14,6 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { API_URL } from "../utils/api";
 
 const AGE_OPTIONS = [
   "8–14 hari",
@@ -30,9 +31,6 @@ const CONDITION_OPTIONS = [
   "Lubang pada daun",
   "Gejala lainnya",
 ];
-
-// Alamat backend FastAPI pada laptop.
-const API_BASE_URL = "http://172.20.10.4:8000";
 
 // Kunci penyimpanan foto yang dibaca oleh result.tsx.
 const IMAGE_STORAGE_KEY = "last_detection_image";
@@ -266,7 +264,7 @@ export default function DetectScreen() {
       // LANGKAH 4:
       // Upload file hasil salinan permanen ke FastAPI.
       const uploadResult = await FileSystem.uploadAsync(
-        `${API_BASE_URL}/detection/predict`,
+        `${API_URL}/detection/predict`,
         persistentImageUri,
         {
           httpMethod: "POST",
@@ -502,6 +500,61 @@ export default function DetectScreen() {
                 Pilih Galeri
               </Text>
             </Pressable>
+          </View>
+        </View>
+
+        {/* PANDUAN FOTO */}
+        <View style={styles.photoGuideCard}>
+          <Text style={styles.photoGuideTitle}>
+            Panduan Foto Tanaman Selada
+          </Text>
+
+          <View style={styles.photoGuideItem}>
+            <View style={styles.photoGuideIcon}>
+              <Text style={styles.photoGuideIconText}>☀</Text>
+            </View>
+
+            <View style={styles.photoGuideItemContent}>
+              <Text style={styles.photoGuideItemTitle}>
+                Pencahayaan yang Baik
+              </Text>
+              <Text style={styles.photoGuideItemDescription}>
+                Ambil foto di tempat yang cukup terang. Hindari bayangan
+                berlebihan atau cahaya yang terlalu menyilaukan.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.photoGuideItem}>
+            <View style={styles.photoGuideIcon}>
+              <Text style={styles.photoGuideIconText}>↔</Text>
+            </View>
+
+            <View style={styles.photoGuideItemContent}>
+              <Text style={styles.photoGuideItemTitle}>
+                Jarak Foto yang Sesuai
+              </Text>
+              <Text style={styles.photoGuideItemDescription}>
+                Atur jarak kamera agar daun terlihat jelas, tidak terlalu
+                jauh, dan tidak terpotong.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.photoGuideItem}>
+            <View style={styles.photoGuideIcon}>
+              <Text style={styles.photoGuideIconText}>◉</Text>
+            </View>
+
+            <View style={styles.photoGuideItemContent}>
+              <Text style={styles.photoGuideItemTitle}>
+                Posisi dan Fokus Daun
+              </Text>
+              <Text style={styles.photoGuideItemDescription}>
+                Pastikan daun menjadi objek utama, fokus, dan bagian yang
+                menunjukkan gejala terlihat jelas.
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -877,6 +930,67 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
     marginBottom: 28,
+  },
+
+  photoGuideCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#DDEBDD",
+    marginBottom: 28,
+    shadowColor: "#264C36",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+
+  photoGuideTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: "900",
+    color: "#1D5F38",
+    marginBottom: 16,
+  },
+
+  photoGuideItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+
+  photoGuideIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: "#EAF6E8",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  photoGuideIconText: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#32834D",
+  },
+
+  photoGuideItemContent: {
+    flex: 1,
+  },
+
+  photoGuideItemTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "800",
+    color: "#2E6D43",
+    marginBottom: 3,
+  },
+
+  photoGuideItemDescription: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: "#6B806F",
   },
 
   preview: {
