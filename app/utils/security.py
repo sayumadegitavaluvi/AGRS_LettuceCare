@@ -1,6 +1,9 @@
-from datetime import datetime, timedelta, timezone
+import os
 import secrets
 import hashlib
+
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
 
 from passlib.context import CryptContext
 from jose import jwt, JWTError
@@ -10,6 +13,13 @@ from fastapi.security import (
     HTTPBearer,
     HTTPAuthorizationCredentials
 )
+
+
+# =========================
+# Load Environment Variables
+# =========================
+
+load_dotenv()
 
 
 # =========================
@@ -23,7 +33,7 @@ security = HTTPBearer()
 # JWT Config
 # =========================
 
-SECRET_KEY = "lettucecare-secret-key"
+SECRET_KEY = os.environ["JWT_SECRET_KEY"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
