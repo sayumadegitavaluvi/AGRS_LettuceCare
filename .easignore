@@ -1,0 +1,103 @@
+# ==========================================
+# EAS IGNORE - LETTUCECARE
+# ==========================================
+
+# ------------------------------------------
+# 1. PYTHON BACKEND
+# ------------------------------------------
+
+# Python virtual environment
+/venv/
+/.venv/
+
+# Python cache
+**/__pycache__/
+*.pyc
+
+# Uploaded detection images
+**/uploads/
+
+
+# ------------------------------------------
+# 2. ENVIRONMENT VARIABLES
+# ------------------------------------------
+
+# Local environment and sensitive data
+.env
+.env.*
+frontend/.env
+frontend/.env.*
+
+
+# ------------------------------------------
+# 3. FRONTEND DEPENDENCIES
+# ------------------------------------------
+
+# Node.js dependencies
+**/node_modules/
+
+# Expo cache
+**/.expo/
+
+# Build output
+**/dist/
+**/web-build/
+
+# Generated Expo files
+**/expo-env.d.ts
+
+
+# ------------------------------------------
+# 4. NATIVE AND TEMPORARY FILES
+# ------------------------------------------
+
+**/.kotlin/
+*.orig.*
+
+# Native credentials
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Metro
+.metro-health-check*
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Example folder from frontend
+/frontend/example
+
+# Generated native folders
+/frontend/ios/
+/frontend/android/
+
+
+# ------------------------------------------
+# 5. UNNECESSARY BUILD FILES
+# ------------------------------------------
+
+# Git metadata
+.git/
+
+# Demo files - not needed by mobile build
+/demo/
+
+
+# ------------------------------------------
+# 6. ALLOWED ENVIRONMENT EXAMPLES
+# ------------------------------------------
+
+!.env.example
+!frontend/.env.example

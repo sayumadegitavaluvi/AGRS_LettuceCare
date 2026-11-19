@@ -1,7 +1,8 @@
 import { showConnectionError } from "./connection";
 
 export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL?.trim() || "http://192.168.18.5:8000";
+  process.env.EXPO_PUBLIC_API_URL?.trim() ||
+  "https://lettucecare.iet-polinela.my.id";
 
 export async function apiRequest(
   endpoint: string,
